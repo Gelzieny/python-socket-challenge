@@ -1,33 +1,55 @@
-<html>
 <!DOCTYPE html>
-  <html lang="en">
-  <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chat em Tempo Real</title>
-  </head>
-  <body>
-    <ul id="messages"></ul>
-    <form id="form" action="">
-      <input id="input" autocomplete="off" /><button>Enviar</button>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat em Tempo Real</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="chat-container">
+    <ul id="messages">
+      {% for message in messages %}
+        <li><strong>{{ message.username }}</strong> [{{ message.timestamp }}]: {{ message.text }}</li>
+      {% endfor %}
+    </ul>
+    <form id="username-form">
+      <input id="username" placeholder="Digite seu nome" autocomplete="off" required />
+      <button type="submit">Salvar</button>
     </form>
+    <form id="form" action="">
+      <input id="input" autocomplete="off" placeholder="Digite sua mensagem" /><button>Enviar</button>
+    </form>
+  </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.0.4/socket.io.js"></script>
-    <script>
-      var socket = io.connect('http://' + document.domain + ':' + location.port);
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.0.4/socket.io.js"></script>
+  <script>
+    const socket = io.connect('http://' + document.domain + ':' + location.port);
 
-      socket.on('message', function(msg) {
-        var ul = document.getElementById('messages');
-        var li = document.createElement('li');
-        li.appendChild(document.createTextNode(msg));
-        ul.appendChild(li);
-      });
+    // Define username
+    document.getElementById('username-form').onsubmit = function () {
+      const username = document.getElementById('username').value;
+      socket.emit('set_username', username);
+      document.getElementById('username-form').style.display = 'none';
+      document.getElementById('form').style.display = 'block';
+      return false;
+    };
 
-      document.getElementById('form').onsubmit = function() {
-        socket.emit('message', document.getElementById('input').value);
-        document.getElementById('input').value = '';
-        return false;
-      };
-    </script>
-  </body>
+    // Receive messages
+    socket.on('message', function (msg) {
+      const ul = document.getElementById('messages');
+      const li = document.createElement('li');
+      li.innerHTML = `<strong>${msg.username}</strong> [${msg.timestamp}]: ${msg.text}`;
+      ul.appendChild(li);
+    });
+
+    // Send messages
+    document.getElementById('form').onsubmit = function () {
+      const input = document.getElementById('input');
+      socket.emit('message', input.value);
+      input.value = '';
+      return false;
+    };
+  </script>
+</body>
 </html>
